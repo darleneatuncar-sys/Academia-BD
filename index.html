@@ -519,10 +519,10 @@
             <div class="tabla-scroll">
               <table>
                 <thead>
-                  <tr><th>ID</th><th>Nombres</th><th>Apellidos</th><th>Teléfono</th><th>Acciones</th></tr>
+                  <tr><th>ID</th><th>Nombres</th><th>Apellidos</th><th>Teléfono</th><th>Disciplina</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="tablaEntrenadores">
-                  <tr class="fila-cargando"><td colspan="5"><div class="spinner"></div></td></tr>
+                  <tr class="fila-cargando"><td colspan="6"><div class="spinner"></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -1068,18 +1068,19 @@
 
   /* ==================================================================
      11. MÓDULO: ENTRENADORES
-     Tabla `entrenador`: id_entrenador, nombre, apellido, telefono
+     Tabla `entrenador`: id_entrenador, nombre, apellido, telefono,
+     id_disciplina (FK -> disciplina)
      ================================================================== */
   async function cargarEntrenadores(mostrarSpinner) {
     const cuerpo = document.getElementById("tablaEntrenadores");
-    if (mostrarSpinner !== false) cuerpo.innerHTML = filaCargando(5);
+    if (mostrarSpinner !== false) cuerpo.innerHTML = filaCargando(6);
     const { data, error } = await clienteSupabase
       .from("entrenador")
-      .select("id_entrenador, nombre, apellido, telefono")
+      .select("id_entrenador, nombre, apellido, telefono, id_disciplina, disciplina(nombre_disciplina)")
       .order("id_entrenador", { ascending: true })
       .limit(LIMITE_FILAS);
     if (error) {
-      cuerpo.innerHTML = filaVacia(5, "Error al cargar los entrenadores.");
+      cuerpo.innerHTML = filaVacia(6, "Error al cargar los entrenadores.");
       aviso("Error", mensajeDeError(error), "error");
       return;
     }
@@ -1096,15 +1097,17 @@
     });
     const cuerpo = document.getElementById("tablaEntrenadores");
     if (!filas.length) {
-      cuerpo.innerHTML = filaVacia(5, termino ? "Sin resultados." : "Aún no hay entrenadores registrados.");
+      cuerpo.innerHTML = filaVacia(6, termino ? "Sin resultados." : "Aún no hay entrenadores registrados.");
       return;
     }
     cuerpo.innerHTML = filas.map(function (e) {
+      const disciplina = e.disciplina ? e.disciplina.nombre_disciplina : "—";
       return "<tr>" +
         '<td class="celda-id">#' + e.id_entrenador + "</td>" +
         '<td class="celda-fuerte">' + escapar(e.nombre) + "</td>" +
         "<td>" + escapar(e.apellido) + "</td>" +
         "<td>" + escapar(e.telefono || "—") + "</td>" +
+        '<td><span class="etiqueta celeste">' + escapar(disciplina) + "</span></td>" +
         '<td><div class="acciones">' +
           botonIcono("editar", "Editar", "abrirFormularioEntrenador(" + e.id_entrenador + ")") +
           botonIcono("eliminar", "Eliminar", "eliminarEntrenador(" + e.id_entrenador + ")") +
@@ -1113,7 +1116,13 @@
   }
 
   async function abrirFormularioEntrenador(id) {
+    // Se asegura de tener las disciplinas actualizadas para el selector
+    await cargarDisciplinas(false);
     const e = id ? estado.entrenadores.find(function (x) { return x.id_entrenador === id; }) : null;
+
+    const opciones = [{ valor: "", texto: "— Selecciona una disciplina —" }].concat(
+      estado.disciplinas.map(function (d) { return { valor: d.id_disciplina, texto: d.nombre_disciplina }; })
+    );
 
     abrirModalFormulario({
       titulo: e ? "Editar entrenador" : "Nuevo entrenador",
@@ -1123,20 +1132,22 @@
         campoTexto({ id: "en-nombre", label: "Nombres", requerido: true, placeholder: "Ej. Carlos Alberto", valor: e ? e.nombre : "" }) +
         campoTexto({ id: "en-apellido", label: "Apellidos", requerido: true, placeholder: "Ej. Gómez Díaz", valor: e ? e.apellido : "" }) +
         campoTexto({ id: "en-telefono", label: "Teléfono", requerido: true, placeholder: "Ej. 987654321", valor: e ? e.telefono : "" }) +
+        campoSelect({ id: "en-disciplina", label: "Disciplina", requerido: true, opciones: opciones, valor: e ? e.id_disciplina : "", completo: true }) +
         "</div>",
       alGuardar: function () { return guardarEntrenador(e); }
     });
   }
 
   async function guardarEntrenador(existente) {
-    if (!validarCampos(["en-nombre", "en-apellido", "en-telefono"])) {
+    if (!validarCampos(["en-nombre", "en-apellido", "en-telefono", "en-disciplina"])) {
       aviso("Campos incompletos", "Completa todos los campos obligatorios.", "error");
       return;
     }
     const datos = {
       nombre: document.getElementById("en-nombre").value.trim(),
       apellido: document.getElementById("en-apellido").value.trim(),
-      telefono: document.getElementById("en-telefono").value.trim()
+      telefono: document.getElementById("en-telefono").value.trim(),
+      id_disciplina: parseInt(document.getElementById("en-disciplina").value, 10)
     };
     const consulta = existente
       ? clienteSupabase.from("entrenador").update(datos).eq("id_entrenador", existente.id_entrenador)
