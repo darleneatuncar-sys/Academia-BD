@@ -1,0 +1,7 @@
+# Taste
+- Prefers web apps delivered as a single self-contained `index.html` using vanilla HTML5/CSS3/JavaScript — no separate style.css/script.js files, no frameworks (React/Vue, etc.) or unnecessary dependencies. Confidence: 0.6
+- When using Supabase, never expose the `service_role` key in the frontend; use only the anon/publishable key and respect RLS policies. Confidence: 0.6
+- Wants code kept simple, ordered, and modular — small single-purpose functions with clear, descriptive names and explanatory comments — because the code has to be explained academically. Avoid unnecessarily complicated code. Confidence: 0.55
+- Prefers concise answers: no long explanations, and no functionality beyond what was asked. Confidence: 0.5
+- For database-backed apps, expects referential integrity to be respected: block deletion of a parent record when rows in other tables reference it via foreign keys (with a clear error message) instead of letting the delete fail or cascading. Confidence: 0.7
+- In Spanish-language forms/tables, prefers plural labels for name fields ("Nombres", "Apellidos") and expects both given names and both surnames to be enterable/shown — including in already-stored and seed/sample data records (e.g. two-surname values like "Atuncar Quispe" in the DB and in the SQL seed script). Confidence: 0.6
